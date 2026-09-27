@@ -2,7 +2,7 @@ format ELF64 executable 32      ; Tells FASM to output a 64-bit Linux executable
 entry start                     ; Defines the execution entry point
 
 include "bigint.inc"
-include "fmt.inc"
+include "constants.inc"
 
 segment readable executable
 
@@ -35,17 +35,17 @@ start:
   call fmt_bigint
 
   mov rdx, rax
-  mov eax, 1
-  mov edi, 1
+  mov eax, __NR_write
+  mov edi, STDOUT_FILENO
   mov rsi, format_buffer
   syscall
 
-  mov eax, 1
-  mov edi, 1
+  mov eax, __NR_write
+  mov edi, STDOUT_FILENO
   mov rsi, newline
   mov edx, 1
   syscall
-  mov eax, 1
+  mov eax, __NR_write
   syscall
 
   mov rax, bigint_b
@@ -55,17 +55,17 @@ start:
   call fmt_bigint
 
   mov rdx, rax
-  mov eax, 1
-  mov edi, 1
+  mov eax, __NR_write
+  mov edi, STDOUT_FILENO
   mov rsi, format_buffer
   syscall
 
-  mov eax, 1
-  mov edi, 1
+  mov eax, __NR_write
+  mov edi, STDOUT_FILENO
   mov rsi, newline
   mov edx, 1
   syscall
-  mov eax, 1
+  mov eax, __NR_write
   syscall
 
   lea rax, [bigint_a + 8]
@@ -81,14 +81,14 @@ start:
   call fmt_bigint
 
   mov rdx, rax
-  mov eax, 1
-  mov edi, 1
+  mov eax, __NR_write
+  mov edi, STDOUT_FILENO
   mov rsi, format_buffer
   syscall
 
   ; Exit the program
-  mov eax, 60                 ; sys_exit system call number
-  xor edi, edi                ; Return code 0 (success)
+  mov eax, __NR_exit
+  xor edi, edi
   syscall
 
 segment readable

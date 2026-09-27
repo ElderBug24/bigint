@@ -1,11 +1,7 @@
 
-; TODO: save constants as macros
+include "fmt.inc"
+include "constants.inc"
 
-if defined __pagesize
-  _pagesize = __pagesize
-else
-  _pagesize = 4096 ; 4KB
-end if
 
 segment readable executable
 
@@ -18,11 +14,11 @@ segment readable executable
       mov r12, rax
       mov r13, rdx
 
-      mov rax, 9    ; mmap
+      mov rax, __NR_mmap
       mov rsi, _pagesize
       xor rdi, rdi
-      mov rdx, 3    ; PROT_READ | PROT_WRITE
-      mov r10, 34   ; MAP_PRIVATE | MAP_ANONYMOUS
+      mov rdx, (PROT_READ or PROT_WRITE)
+      mov r10, (MAP_PRIVATE or MAP_ANONYMOUS)
       xor r8, r8
       dec r8
       xor r9, r9
@@ -58,7 +54,7 @@ segment readable executable
     bigint_unmap_pages:
       mov r12, rax
 
-      mov eax, 11 ; munmap
+      mov eax, __NR_munmap
       mov rdi, [r12]
       mov rsi, _pagesize
       syscall
