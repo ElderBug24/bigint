@@ -33,8 +33,7 @@ segment readable executable
       add rax, 8
       dec rdx
 
-      jz bigint_map_pages_exit_success
-      jmp bigint_map_pages
+      jnz bigint_map_pages
 
       bigint_map_pages_exit_success:
         xor eax, eax
@@ -86,10 +85,8 @@ segment readable executable
       add rax, 8
       dec rdx
 
-      jz bigint_zero_pages_exit
-      jmp bigint_zero_pages
+      jnz bigint_zero_pages
 
-      bigint_zero_pages_exit:
       ret
 
   end if

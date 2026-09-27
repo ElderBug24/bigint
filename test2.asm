@@ -50,7 +50,7 @@ start:
 
   mov rax, bigint_b
   xor ebx, ebx
-  mov rdx, 1
+  mov edx, 1
   mov rdi, format_buffer
   call fmt_bigint
 
