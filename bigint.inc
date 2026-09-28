@@ -1,5 +1,4 @@
 
-include "fmt.inc"
 include "constants.inc"
 
 
@@ -9,10 +8,10 @@ segment readable executable
 
     ; rax : destination pointer
     ; rdx : amount of pages, cannot be zero
-    ; destroys : rax, rbx, rcx, rdx, rsi, rdi, r10, r8, r9, r11, r12, r13
+    ; destroys : rax, rbx, rcx, rdx, rsi, rdi, r10, r8, r9, r11, r12, r15
     bigint_map_pages:
       mov r12, rax
-      mov r13, rdx
+      mov r15, rdx
 
       mov rax, __NR_mmap
       mov rsi, _pagesize
@@ -25,20 +24,20 @@ segment readable executable
       syscall
 
       cmp rax, -4096
-      ja bigint_map_pages_exit_failure
+      ja bigint_map_pages_ret_failure
 
       mov [r12], rax
       mov rax, r12
-      mov rdx, r13
       add rax, 8
+      mov rdx, r15
       dec rdx
 
       jnz bigint_map_pages
 
-      bigint_map_pages_exit_success:
+      bigint_map_pages_ret_success:
         xor eax, eax
         ret
-      bigint_map_pages_exit_failure:
+      bigint_map_pages_ret_failure:
         xor eax, eax
         dec rax
         ret
@@ -91,6 +90,53 @@ segment readable executable
 
   end if
 
+  if used bigint_random_pages
+
+    segment readable
+      dev_random_path db "/dev/random", 0
+      dev_random_path_len = $ - dev_random_path
+
+    segment readable executable
+
+    ; rax : destination pointer, without sign
+    ; rdx : amount of pages, cannot be zero
+    ; destroys : rax, rcx, rdx, rsi, rdi, r12, r13, r15
+    bigint_random_pages:
+      mov r12, rax
+      mov r15, rdx
+
+      mov rax, __NR_open
+      mov rdi, dev_random_path
+      mov rsi, O_RDONLY
+      xor rdx, rdx
+      syscall
+
+      cmp rax, -4096
+      ja bigint_random_pages_ret
+      mov r13, rax
+
+      bigint_random_pages_loop:
+        mov rax, __NR_read
+        mov rdi, r13
+        mov rsi, [r12 + 8 * r15 - 8]
+        mov edx, _pagesize
+        syscall
+
+        cmp rax, -4096
+        ja bigint_random_pages_close
+
+        dec r15
+        jnz bigint_random_pages_loop
+
+      bigint_random_pages_close:
+      mov r13, __NR_close
+      mov rdi, r13
+      syscall
+      bigint_random_pages_ret:
+        ret
+
+  end if
+
   if used bigint_set_zero
 
     ; rax : destination pointer, with sign
@@ -140,8 +186,8 @@ segment readable executable
             mov [rdx + 8 * rsi], rbx
           lahf
 
-          inc rsi
-          cmp rsi, (_pagesize / 8)
+          inc esi
+          cmp esi, (_pagesize / 8)
           jne bigint_add_into_loop
 
         add r12, 8
@@ -154,15 +200,34 @@ segment readable executable
 
   end if
 
-  if used fmt_bigint
+  if used bigint_fmt_qword
+
+    ; rax : qword to format
+    ; rdi : pointer to buffer of size 64+
+    ; destroys : rbx, rcx, rdi (increments by 64)
+    bigint_fmt_qword:
+      mov ecx, 63
+      bigint_fmt_qword_loop:
+        bt rax, rcx
+        setc bl
+        add bl, '0'
+        mov [rdi], bl
+        inc rdi
+        dec ecx
+        jns bigint_fmt_qword_loop
+      ret
+
+  end if
+
+  if used bigint_fmt ; TODO: crashes when fully zero
 
     ; rax : source pointer, with sign
     ; rbx : write leading zeros
     ; rdx : amount of pages, cannot be zero
-    ; rdi : pointer to buffer of size 1+rdx+
+    ; rdi : pointer to buffer of size 2+rdx+
     ; returns the amount of characters written, in rax
     ; destroys : rax, rbx, rcx, rdx, rsi, rdi, r12, r13, r14
-    fmt_bigint:
+    bigint_fmt:
       mov r12, rax
       xor r13, r13
 
@@ -176,11 +241,12 @@ segment readable executable
 
       lea r12, [r12 + 8 * rdx]
 
-      fmt_bigint_page_loop:
+      bigint_fmt_page_loop:
         mov r14, [r12]
         mov esi, (_pagesize / 8)
-        fmt_bigint_loop:
+        bigint_fmt_loop:
           dec esi
+          js bigint_fmt_loop_end
           mov rax, [r14 + 8 * rsi]
 
           test rax, rax
@@ -189,17 +255,27 @@ segment readable executable
           setz ch
           and cl, ch
           cmovz ebx, ecx
-          jnz fmt_bigint_loop
+          jnz bigint_fmt_loop
 
-          call fmt_qword
+          call bigint_fmt_qword
           add r13, 64
           test esi, esi
-          jnz fmt_bigint_loop
+          jnz bigint_fmt_loop
+
+        bigint_fmt_loop_end:
 
         sub r12, 8
         dec rdx
-        jnz fmt_bigint_page_loop
+        jnz bigint_fmt_page_loop
 
+      mov al, '0'
+      mov byte [rdi], al
+      xor eax, eax
+      cmp r13, 1
+      sete al
+      add r13, rax
+
+      bigint_fmt_ret:
       mov rax, r13
       ret
 
