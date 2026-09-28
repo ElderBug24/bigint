@@ -219,7 +219,7 @@ segment readable executable
 
   end if
 
-  if used bigint_fmt ; TODO: crashes when fully zero
+  if used bigint_fmt
 
     ; rax : source pointer, with sign
     ; rbx : write leading zeros
@@ -237,7 +237,8 @@ segment readable executable
       add al, al
       add al, '+'
       stosb
-      inc r13
+      mov al, '0'
+      mov byte [rdi], al
 
       lea r12, [r12 + 8 * rdx]
 
@@ -268,11 +269,10 @@ segment readable executable
         dec rdx
         jnz bigint_fmt_page_loop
 
-      mov al, '0'
-      mov byte [rdi], al
       xor eax, eax
-      cmp r13, 1
-      sete al
+      test r13, r13
+      setz al
+      inc eax
       add r13, rax
 
       bigint_fmt_ret:
