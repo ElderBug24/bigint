@@ -226,7 +226,7 @@ segment readable executable
     ; rdx : amount of pages, cannot be zero
     ; rdi : pointer to buffer of size 2+rdx+
     ; returns the amount of characters written, in rax
-    ; destroys : rax, rbx, rcx, rdx, rsi, rdi, r12, r13, r14
+    ; destroys : rax, rbx, rcx, rdx, rsi, rdi, r12, r13, r14, r15
     bigint_fmt:
       mov r12, rax
       xor r13, r13
@@ -236,30 +236,42 @@ segment readable executable
       setnz al
       add al, al
       add al, '+'
+      cld
       stosb
       mov al, '0'
       mov byte [rdi], al
 
       lea r12, [r12 + 8 * rdx]
 
+      std
       bigint_fmt_page_loop:
         mov r14, [r12]
         mov esi, (_pagesize / 8)
+        test ebx, ebx
+        jnz bigint_fmt_loop
+        mov r15, rdi
+        lea rdi, [r14 + _pagesize - 8]
+        mov ecx, (_pagesize / 8)
+        xor eax, eax
+        repz scasq
+        mov rsi, rdi
+        sub rsi, r14
+        sar rsi, 3
+        add rsi, 2
+        mov rdi, r15
         bigint_fmt_loop:
           dec esi
           js bigint_fmt_loop_end
           mov rax, [r14 + 8 * rsi]
 
-          test rax, rax
-          setz cl
-          test ebx, ebx
-          setz ch
-          and cl, ch
-          cmovz ebx, ecx
-          jnz bigint_fmt_loop
+          xor ecx, ecx
+          or rcx, rax
+          or ecx, ebx
+          jz bigint_fmt_loop
 
           call bigint_fmt_qword
           add r13, 64
+          mov rbx, r13 ; nonzero
           test esi, esi
           jnz bigint_fmt_loop
 
