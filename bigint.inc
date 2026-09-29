@@ -159,6 +159,73 @@ segment readable executable
 
   end if
 
+  if used bigint_cmp
+
+    ; rax : pointer to the first number, without sign
+    ; rbx : pointer to the second number, without sign
+    ; rdx : amount of pages, cannot be zero
+    ; sets flags like unsigned integer comparison
+    ; destroys : rax, rbx, rcx, rdx, rsi, rdi, r12
+    bigint_cmp:
+      lea r12, [rax + 8 * rdx]
+      lea rbx, [rbx + 8 * rdx]
+
+      bigint_cmp_page_loop:
+        sub r12, 8
+        sub rbx, 8
+
+        mov rsi, [r12]
+        mov rdi, [rbx]
+        add rsi, (_pagesize - 8)
+        add rdi, (_pagesize - 8)
+
+        mov ecx, (_pagesize / 8)
+        std
+        repe cmpsq
+        jne bigint_cmp_diff
+
+        dec rdx
+        jnz bigint_cmp_page_loop
+
+      ret
+
+      bigint_cmp_diff:
+      mov rax, [rsi + 8]
+      cmp rax, [rdi + 8]
+      ret
+
+  end if
+
+  if used bigint_cmp_signed
+
+    ; rax : pointer to the first number, with sign
+    ; rbx : pointer to the second number, with sign
+    ; rdx : amount of pages, cannot be zero
+    ; sets flags like unsigned integer comparison
+    ; destroys : rax, rbx, rcx, rdx, rsi, rdi, r12, r13
+    bigint_cmp_signed:
+      mov r12, [rax]
+      mov r13, [rbx]
+      lea rax, [rax + 8]
+      lea rbx, [rbx + 8]
+
+      cmp r13, r12
+      je bigint_cmp_signed_same_sign
+      ret
+
+      bigint_cmp_signed_same_sign:
+      test r12, r12
+      jnz bigint_cmp_signed_both_neg
+
+      jmp bigint_cmp
+
+      bigint_cmp_signed_both_neg:
+      call bigint_cmp
+      cmc
+      ret
+
+  end if
+
   if used bigint_add_into
 
     ; rax : pointer to the first number, without sign
@@ -246,7 +313,7 @@ segment readable executable
       std
       bigint_fmt_page_loop:
         mov r14, [r12]
-        mov esi, (_pagesize / 8)
+
         test ebx, ebx
         jnz bigint_fmt_loop
         mov r15, rdi
@@ -259,6 +326,7 @@ segment readable executable
         sar rsi, 3
         add rsi, 2
         mov rdi, r15
+
         bigint_fmt_loop:
           dec esi
           js bigint_fmt_loop_end
