@@ -1,8 +1,4 @@
 
-if ~ definite _pagesize
-  _pagesize = 4096 ; 4 KB
-end if
-
 __NR_read = 0
 __NR_write = 1
 __NR_open = 2

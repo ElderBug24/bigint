@@ -1,6 +1,10 @@
 
 include "constants.inc"
 
+if ~ definite _pagesize
+  _pagesize = 4096 ; 4 KB
+end if
+
 
 segment readable executable
 
