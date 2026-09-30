@@ -27,7 +27,7 @@ segment readable executable
     mov [bigint_a], 0
 
     mov rax, [bigint_b + 8]
-    mov qword [rax], 4
+    mov qword [rax], 45
     mov [bigint_b], 0
     mov [bigint_c], 0
 
@@ -35,7 +35,7 @@ segment readable executable
     xor ebx, ebx
     mov rdx, 4
     mov rdi, format_buffer
-    call bigint_fmt
+    call bigint_fmt_bin
 
     mov rdx, rax
     mov eax, __NR_write
@@ -55,7 +55,7 @@ segment readable executable
     xor ebx, ebx
     mov edx, 1
     mov rdi, format_buffer
-    call bigint_fmt
+    call bigint_fmt_bin
 
     mov rdx, rax
     mov eax, __NR_write
@@ -80,7 +80,7 @@ segment readable executable
     xor ebx, ebx
     mov rdx, 1
     mov rdi, format_buffer
-    call bigint_fmt
+    call bigint_fmt_bin
 
     mov rdx, rax
     mov eax, __NR_write
