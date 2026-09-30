@@ -73,11 +73,10 @@ segment readable executable
 
     lea rax, [bigint_a + 8]
     lea rbx, [bigint_b + 8]
-    lea rcx, [bigint_c + 8]
     mov rdx, 4
-    call bigint_add_into
+    call bigint_add
 
-    mov rax, bigint_c
+    mov rax, bigint_a
     xor ebx, ebx
     mov rdx, 1
     mov rdi, format_buffer

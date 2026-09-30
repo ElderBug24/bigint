@@ -230,6 +230,41 @@ segment readable executable
 
   end if
 
+  if used bigint_add
+
+    ; rax : pointer to the first number, without sign
+    ; rbx : pointer to the destination number, without sign
+    ; rdx : amount of pages, cannot be zero
+    ; destroys : rax, rbx, rcx, rdx, rsi, r12, r13, r15
+    bigint_add:
+      mov r12, rax
+      mov r13, rbx
+      mov r15, rdx
+
+      xor eax, eax
+      bigint_add_page_loop:
+        xor esi, esi
+        bigint_add_loop:
+          sahf
+            mov rbx, [r12]
+            mov rcx, [r13]
+            mov rcx, [rcx + 8 * rsi]
+            adc [rbx + 8 * rsi], rcx
+          lahf
+
+          inc esi
+          cmp esi, (_pagesize / 8)
+          jne bigint_add_loop
+
+        add r12, 8
+        add r13, 8
+        dec r15
+        jnz bigint_add_page_loop
+
+      ret
+
+  end if
+
   if used bigint_add_into
 
     ; rax : pointer to the first number, without sign
